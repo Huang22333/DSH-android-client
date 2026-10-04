@@ -2,7 +2,7 @@
 
 把 DSH Web UI 包成一个纯粹的安卓应用：打开即整屏 DSH，**没有 ActionBar、没有标题栏、没有底部菜单栏、没有自带导航按钮**。
 
-- 产物：`dist/DSH-2.0.apk`（约 61 KB，minSdk 24 / targetSdk 35，v2+v3 签名）
+- 产物：`dist/DSH-<版本>.apk`（版本号**只写在 `build.sh`** 的 `VERSION_NAME`/`VERSION_CODE`，当前 4.3 / 23；约 186 KB，minSdk 24 / targetSdk 35，v2+v3 签名）
 - 包名：`app.dsh.shell`
 - **不内置任何地址**：首次进入让用户手填，之后记住。同一个 APK 可以给任何自建 DSH 的人用。
 
@@ -11,7 +11,7 @@
 不依赖 Gradle（这台机器 内存有限，Gradle 太奢侈），直接 aapt2 + javac + d8 + zipalign + apksigner：
 
 ```bash
-bash build.sh          # 内部会先跑纯 Java 自测，再出 dist/DSH-1.0.apk
+bash build.sh          # 先跑 8 组自测（全过才出包），再出 dist/DSH-<版本>.apk
 ```
 
 依赖（都已落在磁盘上）：
@@ -20,7 +20,7 @@ bash build.sh          # 内部会先跑纯 Java 自测，再出 dist/DSH-1.0.ap
 | --- | --- |
 | JDK 17 | `$JAVA_HOME`（需 JDK 17）|
 | Android SDK | `$ANDROID_SDK_ROOT`（build-tools 35.0.0 / platform android-35）|
-| 签名密钥 | `keystore/dsh.keystore`（口令从 `KS_PASS` 环境变量读取（自制自签），与 Play 无关） |
+| 签名密钥 | `release.keystore`（缺失先从 `backup/dsh.keystore.bak` 恢复，两份都丢才新建；口令从 `KS_PASS` 环境变量读取，不设直接报错退出。自制自签，与 Play 无关） |
 
 ## 行为
 
@@ -73,7 +73,7 @@ bash build.sh          # 内部会先跑纯 Java 自测，再出 dist/DSH-1.0.ap
 （那个查死了，摆着只会误导）。`setScrollCaptureHint` 那行**保留**（声明该声明的），
 但注释里写明了"对本页无效、别再重新排查"。
 
-## 切回前台时的「正在同步」胶囊（v2.2）
+## 切回前台时的「正在同步」胶囊（v2.2 引入）
 
 从后台切回 DSH App 时，前端要重连 + 重拉会话历史，这几秒页面是停住的（主线程在同步重渲染），
 看起来像服务器死了。所以加了个小胶囊提示。
@@ -105,10 +105,11 @@ bash build.sh          # 内部会先跑纯 Java 自测，再出 dist/DSH-1.0.ap
 **⚠️ 不要额外去"检测定时器迟到"**：主线程真被占住时，回调本身就跑不了，天然会等到阻塞结束；
 反而在系统钳制定时器（无头浏览器实测被钳到 1s）时会永远判不出空闲。这点绕了一圈才想明白。
 
-实测（`tools/selftest/watch-idle.mjs`，真浏览器里同步阻塞主线程 2 秒）：
-阻塞期间不提前报空闲、结束后 2242ms 才报；本来就空闲则 150ms 报。**5/5 通过**。
+验证脚本 `tools/selftest/watch-net.mjs`（真浏览器三场景：全程无流量 / 流吐 2s 后停 /
+**传输途中主线程被阻塞 1.5s**，共 7 项断言）：无流量一个回调都不发（锁屏解锁不再误弹）；
+有流量报 busy、最后一片后 ~500ms 报 done；主线程阻塞不影响判定，分片在恢复后照样被读到。
 
-## 被外部拉起的私有 scheme（v2.1）
+## 被外部拉起的私有 scheme（v2.1 引入）
 
 APK 注册了 `dshapp://open`（见 `AndroidManifest.xml`），用来被**通知**拉回前台：
 
@@ -190,7 +191,7 @@ APK 注册了 `dshapp://open`（见 `AndroidManifest.xml`），用来被**通知
 ⇒ 第二次打开能复用 12.3MB，但仍要重下 1.4MB。另：插件包的 `rev` 是**全局**指纹，
 任一插件更新会让整个 12.3MB 缓存失效。
 
-## 上传前压缩：为什么是 2048 长边
+## 上传前压缩：为什么是 2048×2048 总像素
 
 「合规 = 服务端一次重编码都不跑」的阈值（读源码 + **用 DSH 自己的
 `canPassThroughNormalization` 实测**，不是推断）：
@@ -202,13 +203,14 @@ APK 注册了 `dshapp://open`（见 `AndroidManifest.xml`），用来被**通知
 | 编码字节 | ≤ **1MB**（发请求侧更严；附件侧是 4MB） |
 | 其他 | 非 GIF/动图、8-bit sRGB、**不能带 EXIF** |
 
-所以压到 **2048 长边 + q85**（实测真实照片 ~400-500KB）。三条理由：
+所以压到 **总像素 ≤ 2048×2048 + q85**（正方形才恰为 2048 长边，4:3 长边可到 ~2364、
+16:9 可到 ~2730，见「踩过的坑」1s；实测真实照片 ~400-500KB）。三条理由：
 
 1. 相机原图 4080×3060 = 12.5MP、3~6MB，移动网上传要好几秒 —— 压完只 ~450KB。
 2. 尺寸合规 ⇒ 服务端**直接放行**，省掉 1250 万像素解码 + 三级重编码（低配 VM 上实测 482ms）。
 3. **模型根本用不上那么大**：DeepSeek 那条链路 384 token 预算 ⇒ 等效仅约 823×823。
-   实测把 2048 和 1024 两张图分别喂给模型，**读出的最小字号完全相同（Z9）**。
-   ⇒ 压到 2048 是**零画质损失**的纯提速。
+   实测把压后图（2048 级）和 1024 图分别喂给模型，**读出的最小字号完全相同（Z9）**。
+   ⇒ 压到 2048 级是**零画质损失**的纯提速。
 
 ⚠️ **EXIF 是个容易漏的点**：相机照片默认带 EXIF（方向/GPS/机型），而带元数据的图
 **即使尺寸合规也会被重编码**。canvas/Bitmap 重绘后导出的 JPEG 天然无 EXIF，所以走重绘路径就自动满足。
@@ -283,6 +285,7 @@ app/java/app/dsh/shell/
   Ui.java                        自绘对话框（卡片/圆角/深浅色），不依赖 AppCompat
   SettingsPanel.java             设置面板（自绘开关胶囊），由桌面快捷方式或返回键菜单打开
   LoadingView.java               全屏加载页（自绘旋转环 + 耗时计数 + 阶段文案）
+  SyncView.java                  「正在同步」胶囊（原生独立渲染，网页卡死也照转）
   CaptureProvider.java           极简 FileProvider（服务拍照输出 + 压缩产物，仅 cache 下两个目录）
   ImageSizing.java               按比例缩到合规尺寸（纯 Java，覆盖极端宽高比）
   ImageCompressor.java           上传前压缩：两段式解码 + 质量/尺寸阶梯 + 去 EXIF
@@ -300,18 +303,20 @@ tools/selftest/TestNav.java      导航去向判定用例（应用内 / 系统 /
 tools/selftest/TestImageSizing.java  尺寸计算用例（含极端比例 + 20000 组随机，29 项）
 tools/selftest/test_capture_provider.py  CaptureProvider 路径放行规则用例 + 元验证
 tools/selftest/TestB64.java      Base64 编解码用例（RFC 4648 向量 + 全字节往返，13 项）
+tools/selftest/check_recursion.py  方法直接自递归静态检查（构建期硬检查，见上文事故一节）
+tools/selftest/watch-net.mjs     同步气泡网络驱动判定的真浏览器验证（三场景 7 项断言）
 libs/shizuku-*.jar               Shizuku API 13.1.5（Maven aar 解出 classes.jar，调试通道用）
 tools/preview_ui.py              把 Ui.java 的配色渲染成预览图（无模拟器时靠它看界面）
 tools/preview-mobile.mjs         按某 Android 15 手机 参数（436x971@2.75）远程渲染预览
 build.sh                         一键构建
 ```
 
-## 调试通道（ADB，v4.0）
+## 调试通道（ADB，v4.0 引入）
 
 目的：不插 USB 线，让 agent 在主机上直接对手机执行 shell 命令调试这个壳
 （拿 logcat 堆栈、装新包、截图、dumpsys），等效「远程 adb shell」。
 
-原理：手机**出站**连主机的 phone-relay（`tools/phone-relay/relay.py`，
+原理：手机**出站**连主机的 phone-relay（`phone-relay/relay.py`（仓库根），
 systemd 服务 `phone-relay`，端口 2900），收到命令后经 Shizuku UserService 以
 shell(uid 2000) 身份在**独立进程**执行、输出流回。手机不开任何监听端口、不碰
 adbd；App 被杀不影响通道（正好用来看崩溃日志）。
@@ -324,7 +329,7 @@ adbd；App 被杀不影响通道（正好用来看崩溃日志）。
 - **公网链路**：`手机 → 反代服务器→ 隧道 →
   网关分流 → TLS 终结→ relay`。
   DNS `relay.example.com` 指向 relay 服务所在机器。
-- **主机端**：`bin/phone <shell 命令>`；`phone status` 看在线，
+- **主机端**：`phone-relay/phone <shell 命令>`；`phone status` 看在线，
   `phone -t 秒` 超时自动杀任务。
 - 依赖代价：`libs/shizuku-*.jar`（Maven aar 手工解包，没引 Gradle），包体
   120KB→186KB；签名指纹未变，可覆盖安装。

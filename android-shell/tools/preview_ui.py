@@ -83,7 +83,7 @@ CARDS = {
       <div class="menurow" style="display:flex;align-items:center;gap:14px">
         <div style="flex:1">
           <div class="t">上传前压缩图片</div>
-          <div class="d">缩到 2048 长边（约 450KB）。DSH 会直接放行不再重编码，上传快很多；模型看到的画面完全不变。</div>
+          <div class="d">缩到 2048×2048 总像素内（正方形才恰 2048 长边，约 450KB）。DSH 会直接放行不再重编码，上传快很多；模型看到的画面完全不变。</div>
         </div>
         <div class="pill">已开启</div>
       </div>

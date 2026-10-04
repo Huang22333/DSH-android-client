@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   2 = STOP：断开并自杀
  *   16777115 / 16777114 = Shizuku 约定的 destroy（unbind 时服务端会发）
  *
- * 协议见 tools/phone-relay/relay.py 头部注释（行式文本 + base64）。
+ * 协议见 phone-relay/relay.py（仓库根）头部注释（行式文本 + base64）。
  */
 public final class DebugRelayService extends Binder {
 

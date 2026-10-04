@@ -23,7 +23,7 @@ DSH 安卓客户端 —— 把 DSH 管理面板变成手机上「像原生 App�
 - **无浏览器 UI**：没有地址栏、标签页、菜单，纯全屏
 - **加载页**：进度环 + 阶段文案 + 页面自曝处境（资源数/文字数/JS 报错），失败时给可操作提示
 - **同步气泡**：切回前台时有数据在转就弹「正在同步」，传完变「同步完成」快速消失
-- **图片压缩**：上传前压到 2048 长边 + 无 EXIF，命中服务端直通判据（不重编码）
+- **图片压缩**：上传前压到总像素 ≤ 2048×2048 + 无 EXIF，命中服务端直通判据（不重编码）
 - **拍照/选图/下载**：FileProvider + RFC 5987 文件名解析
 - **私有 scheme** `dshapp://open`：外部拉起 App
 - **设置面板**：桌面长按图标进入（压缩开关、运行环境、调试通道）
@@ -45,15 +45,17 @@ DSH 安卓客户端 —— 把 DSH 管理面板变成手机上「像原生 App�
 
 export JAVA_HOME=/path/to/jdk-17
 export ANDROID_SDK_ROOT=/path/to/android-sdk
-export KS_PASS=your-keystore-password   # 签名口令，不设则生成新密钥
+export KS_PASS=your-keystore-password   # 签名口令（必填，缺了直接报错；密钥文件缺失才会新建）
 
 cd android-shell
 bash build.sh
 ```
 
-构建流程自动运行 **7 组自测**（纯 Java 逻辑 + 结构自检 + 递归检查）+ 版本号硬校验 + 签名指纹校验，全部通过才出包。
+构建流程自动运行 **8 组自测**（6 组 Java 逻辑用例 + CaptureProvider 路径规则 + 自递归静态检查）+ 版本号硬校验 + 签名指纹校验，全部通过才出包。
 
 输出：`android-shell/dist/DSH-x.y.apk`
+
+正式包由 GitHub Actions 构建（推送 `v*` tag 自动出包挂到 Releases）：密钥从 Secret `KEYSTORE_BASE64` 还原成 `android-shell/release.keystore`，口令用 `KEYSTORE_PASSWORD`。本地构建才需要自己放密钥文件。
 
 ## 远程调试
 

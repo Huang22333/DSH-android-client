@@ -60,8 +60,8 @@ final class SettingsPanel {
 
         // ── 上传压缩 ──────────────────────────────────────────────
         addSwitchRow(a, col, "上传前压缩图片",
-                "缩到 2048 长边（约 450KB）。DSH 会直接放行不再重编码，"
-                        + "上传快很多；模型看到的画面完全不变。",
+                "缩到 2048×2048 总像素内（正方形才恰 2048 长边，约 450KB）。"
+                        + "DSH 会直接放行不再重编码，上传快很多；模型看到的画面完全不变。",
                 prefs.getBoolean(Config.K_COMPRESS, true),
                 now -> {
                     prefs.edit().putBoolean(Config.K_COMPRESS, now).apply();

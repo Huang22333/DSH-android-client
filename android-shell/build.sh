@@ -30,10 +30,10 @@ command -v java >/dev/null || { echo "缺 java"; exit 1; }
 [ -f "$PLATFORM" ] || { echo "缺 $PLATFORM"; exit 1; }
 [ -x "$BT/aapt2" ] || { echo "缺 build-tools"; exit 1; }
 
-echo "==> 0/7 生成图标"
+echo "==> 1/9 生成图标"
 python3 "$ROOT/tools/gen_icons.py"
 
-echo "==> 0/7 纯 Java 自测（颜色 / 地址 / 文件名）+ 结构自检"
+echo "==> 2/9 自测（8 组：颜色/地址/文件名/导航/尺寸/Base64 + CaptureProvider + 递归静态检查）"
 mkdir -p "$BUILD/selftest"
 javac -encoding UTF-8 -d "$BUILD/selftest" \
     "$APP/java/app/dsh/shell/Css.java" "$APP/java/app/dsh/shell/Urls.java" \
@@ -66,10 +66,10 @@ for SUF in fileprovider shizuku; do
     fi
 done
 
-echo "==> 1/7 编译资源"
+echo "==> 3/9 编译资源"
 "$BT/aapt2" compile --dir "$APP/res" -o "$BUILD/res.zip" --no-crunch
 
-echo "==> 2/7 链接资源 + 生成 R.java"
+echo "==> 4/9 链接资源 + 生成 R.java"
 "$BT/aapt2" link \
     -o "$BUILD/base.apk" \
     -I "$PLATFORM" \
@@ -81,7 +81,7 @@ echo "==> 2/7 链接资源 + 生成 R.java"
     --version-name "$VERSION_NAME" \
     "$BUILD/res.zip"
 
-echo "==> 3/7 编译 Java"
+echo "==> 5/9 编译 Java"
 find "$APP/java" "$BUILD/gen" -name '*.java' > "$BUILD/sources.txt"
 # 第三方库（Shizuku API：Maven 的 aar 解出 classes.jar 放 libs/，不用 Gradle）
 LIBJARS=$(find "$ROOT/libs" -name '*.jar' | sort | paste -sd: -)
@@ -92,13 +92,13 @@ javac -encoding UTF-8 -source 8 -target 8 -nowarn -Xlint:-options \
     -bootclasspath "$PLATFORM:$BT/core-lambda-stubs.jar" -classpath "$PLATFORM:$LIBJARS" \
     -d "$BUILD/classes" @"$BUILD/sources.txt"
 
-echo "==> 4/7 dex"
+echo "==> 6/9 dex"
 find "$BUILD/classes" -name '*.class' > "$BUILD/classes.txt"
 find "$ROOT/libs" -name '*.jar' | sort >> "$BUILD/classes.txt"
 "$BT/d8" --release --min-api "$MIN_SDK" --lib "$PLATFORM" \
     --output "$BUILD/dex" @"$BUILD/classes.txt"
 
-echo "==> 5/7 打包 + 对齐"
+echo "==> 7/9 打包 + 对齐"
 python3 - "$BUILD/base.apk" "$BUILD/dex/classes.dex" "$BUILD/unsigned.apk" <<'PY'
 import sys, zipfile, shutil
 base, dex, out = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -110,7 +110,7 @@ print('apk entries:', len(zipfile.ZipFile(out).namelist()))
 PY
 "$BT/zipalign" -f -p 4 "$BUILD/unsigned.apk" "$BUILD/aligned.apk"
 
-echo "==> 6/7 签名"
+echo "==> 8/9 签名"
 # 从备份恢复密钥；两份都丢了才新建。绝不能因为 keystore 缺失就默默换新密钥 ——
 # 签名变了老版本就覆盖安装不上（用户得先卸载），这曾真实发生过一次。
 mkdir -p "$ROOT/backup"
@@ -124,7 +124,7 @@ if [ ! -f "$KS" ]; then
     keytool -genkeypair -keystore "$KS" -alias "$KS_ALIAS" \
         -keyalg RSA -keysize 2048 -validity 10950 \
         -storepass "$KS_PASS" -keypass "$KS_PASS" \
-        -dname "CN=DSH-Shell, O=xybcm.cn, C=CN" >/dev/null 2>&1
+        -dname "CN=DSH-Shell, O=DSH, C=CN" >/dev/null 2>&1
     chmod 600 "$KS"
 fi
 # 每次构建都同步一份备份
@@ -136,6 +136,7 @@ chmod 600 "$ROOT/backup/dsh.keystore.bak"
     --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled true \
     --out "$OUT" "$BUILD/aligned.apk"
 
+echo "==> 9/9 校验（版本号 + 签名指纹）"
 # 版本号必须真的落进包里：manifest 里的同名属性会压过 aapt2 命令行参数（实测），
 # 曾出现「build.sh 写 1.1、装出来还是 1.0」的静默失配，所以这里硬校验一次。
 # ⚠️ 别写成 `aapt2 ... | head -1`：head 读完即退出，aapt2 收到 SIGPIPE，
