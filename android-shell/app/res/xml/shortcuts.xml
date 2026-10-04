@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 长按桌面图标弹出的菜单：不占用任何屏幕空间，是最"无 chrome"的入口。 -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="reload"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_reload"
+        android:shortcutLongLabel="@string/sc_reload_long">
+        <intent
+            android:action="app.dsh.shell.action.RELOAD"
+            android:targetPackage="app.dsh.shell"
+            android:targetClass="app.dsh.shell.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="creds"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_creds"
+        android:shortcutLongLabel="@string/sc_creds_long">
+        <intent
+            android:action="app.dsh.shell.action.CLEAR_CREDS"
+            android:targetPackage="app.dsh.shell"
+            android:targetClass="app.dsh.shell.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_settings"
+        android:shortcutLongLabel="@string/sc_settings_long">
+        <intent
+            android:action="app.dsh.shell.action.SETTINGS"
+            android:targetPackage="app.dsh.shell"
+            android:targetClass="app.dsh.shell.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="url"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_url"
+        android:shortcutLongLabel="@string/sc_url_long">
+        <intent
+            android:action="app.dsh.shell.action.SET_URL"
+            android:targetPackage="app.dsh.shell"
+            android:targetClass="app.dsh.shell.MainActivity" />
+    </shortcut>
+</shortcuts>

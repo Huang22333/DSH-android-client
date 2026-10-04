@@ -1,0 +1,5 @@
+#!/bin/bash
+# 手机调试入口：通过 phone-relay 在手机（DSH 壳 + Shizuku）上执行 shell 命令。
+# 用法见 relay_cli.py 顶部注释。等效「远程 adb shell」，手机侧不开监听端口。
+export PYTHONUNBUFFERED=1
+exec python3 relay_cli.py "$@"

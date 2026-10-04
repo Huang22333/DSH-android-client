@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DSH</string>
+
+    <!-- 首次进入 -->
+    <string name="first_title">欢迎使用 DSH</string>
+    <string name="first_msg">填写你的 DSH 网页入口地址。\n必须是 https —— DSH 需要安全上下文，http 下部分功能不可用。\n填好后会记住，之后打开直接进入。</string>
+    <string name="enter">开始使用</string>
+
+    <!-- 地址 -->
+    <string name="url_label">入口地址</string>
+    <string name="url_title">修改地址</string>
+    <string name="url_msg">换地址会同时清除已保存的账号密码。</string>
+    <string name="url_hint">https://your-dsh.example.com/</string>
+    <string name="url_invalid">地址不能为空，且需以 http(s):// 开头</string>
+    <string name="save">保存</string>
+
+    <!-- http 警告 -->
+    <string name="http_title">不建议用 http</string>
+    <string name="http_msg">DSH 需要安全上下文（https）。明文 http 下剪贴板、会话储存等前端功能会受限。</string>
+    <string name="continue_anyway">仍然继续</string>
+    <string name="go_back">返回修改</string>
+
+    <!-- 登录 -->
+    <string name="auth_title">登录 DSH</string>
+    <string name="auth_user_label">用户名</string>
+    <string name="auth_pass_label">密码</string>
+    <string name="auth_user">用户名</string>
+    <string name="auth_pass">密码</string>
+    <string name="auth_msg">该站点需要 HTTP Basic 认证。勾选「记住」后下次打开自动登录。</string>
+    <string name="auth_remember">记住账号密码</string>
+    <string name="login">登录</string>
+
+    <!-- 通用 -->
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+    <string name="retry">重新加载</string>
+    <string name="reenter">改地址</string>
+    <string name="exit">退出</string>
+    <string name="dl_started">已开始下载</string>
+    <string name="dl_failed">下载失败</string>
+
+    <!-- 快捷方式 -->
+    <string name="sc_reload">重新加载</string>
+    <string name="sc_reload_long">重新加载 DSH 页面</string>
+    <string name="sc_creds">清除账号</string>
+    <string name="sc_creds_long">清除已保存的账号密码与 Cookie</string>
+    <string name="sc_settings">设置</string>
+    <string name="sc_settings_long">设置（压缩等开关）</string>
+    <string name="sc_url">设置地址</string>
+    <string name="sc_url_long">修改 DSH 入口地址</string>
+</resources>

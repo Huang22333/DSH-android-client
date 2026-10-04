@@ -1,0 +1,27 @@
+# 构建产物
+build/
+dist/
+*.apk
+*.aab
+
+# 密钥（绝对不能进仓库）
+keystore/
+backup/
+secrets/
+*.keystore
+*.jks
+
+# 临时文件
+.tmp/
+__pycache__/
+*.pyc
+*.log
+restart.log
+
+# IDE
+.idea/
+*.iml
+build/
+dist/
+release.keystore
+*.keystore

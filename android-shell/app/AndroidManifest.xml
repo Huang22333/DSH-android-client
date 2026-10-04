@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  versionCode / versionName 的唯一事实来源是 build.sh（它用 aapt2 的
+  version-code / version-name 选项注入）。这里刻意不写：manifest 里的同名属性
+  会压过命令行参数（实测 aapt2 2.19），写了就会出现「改了 build.sh 版本号、
+  装出来的还是旧版本」这种静默错误。
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.dsh.shell">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Shizuku API 需要（provider 库自带 manifest 里有，手工构建没 manifest 合并，得自己写） -->
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
+    <!-- API 29 以下把下载文件写入公共「下载」目录需要；29+ 用分区存储，无需此权限 -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <!-- 该应用本质上是一个浏览器，声明出来以免被系统/商店误判 -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:theme="@style/AppTheme"
+        android:hardwareAccelerated="true"
+        android:allowBackup="true"
+        android:supportsRtl="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|density">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              自定义 scheme：让「通知」点一下就能把本 App 拉到前台。
+              通知服务的 Click 只支持打开一个 URI，而本 App 不能去抢 http/https
+              （那会变成浏览器），所以用私有 scheme。
+              实测：通知里填 dshapp://open，点一下就回到 App（launchMode=singleTask，
+              走 onNewIntent，handleIntent 的 default 分支什么都不做 = 只回前台，不重载页面）。
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dshapp" android:host="open" />
+            </intent-filter>
+
+            <!-- 长按桌面图标：不占屏幕空间的"设置入口"，替代实体返回键长按 -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- 仅用于把「拍照」的输出文件暴露给相机应用；实现见 CaptureProvider -->
+        <provider
+            android:name=".CaptureProvider"
+            android:authorities="app.dsh.shell.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <!-- Shizuku v3 客户端标记 + Binder 获取入口（provider 库自带 manifest 的内容，
+             手工构建没有 manifest 合并，这里照抄一份；authority 写字面量，aapt2 不展开占位符） -->
+        <meta-data
+            android:name="moe.shizuku.client.V3_SUPPORT"
+            android:value="true" />
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="app.dsh.shell.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+    </application>
+</manifest>
